@@ -1,25 +1,71 @@
-// -------------------- TIMER LOGIC --------------------
 let seconds = 0;
 let timer;
 let running = false;
 
+const video = document.getElementById('camera');
+const canvas = document.getElementById('output');
+const ctx = canvas.getContext('2d');
+canvas.width = 640;
+canvas.height = 480;
+
+let pose, camera;
+
+// Draw pose results
+function onResults(results){
+  ctx.save();
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(results.image,0,0,canvas.width,canvas.height);
+
+  if(results.poseLandmarks){
+    drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, {color:'#00FF00', lineWidth:4});
+    drawLandmarks(ctx, results.poseLandmarks, {color:'#FF0000', lineWidth:2});
+  }
+  ctx.restore();
+}
+
+// Initialize MediaPipe Pose
+function initPose(){
+  pose = new Pose({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`});
+  pose.setOptions({
+    modelComplexity: 1,
+    smoothLandmarks: true,
+    enableSegmentation: false,
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5
+  });
+  pose.onResults(onResults);
+}
+
+// Start camera (after user clicks START)
+function startCamera(){
+  camera = new Camera(video, {
+    onFrame: async () => await pose.send({image: video}),
+    width: 640,
+    height: 480
+  });
+  camera.start();
+}
+
+// -------------------- TIMER --------------------
 function updateTimer(){
   seconds++;
   let min = Math.floor(seconds/60);
-  let sec = seconds % 60;
-  document.getElementById("timer").innerText = min + ":" + (sec<10?"0":"") + sec;
+  let sec = seconds%60;
+  document.getElementById('timer').innerText = min + ":" + (sec<10?"0":"")+sec;
 }
 
-document.getElementById("startBtn").onclick = function(){
+document.getElementById('startBtn').onclick = function(){
   if(!running){
     seconds = 0;
     running = true;
+    initPose();
+    startCamera();
     timer = setInterval(updateTimer,1000);
     startRandomEvent();
   }
 }
 
-document.getElementById("stopBtn").onclick = function(){
+document.getElementById('stopBtn').onclick = function(){
   clearInterval(timer);
   running=false;
   alert("Your time: "+seconds+" seconds");
@@ -27,20 +73,18 @@ document.getElementById("stopBtn").onclick = function(){
 
 // -------------------- RANDOM EVENT --------------------
 function startRandomEvent(){
-  // DEVELOPMENT MODE: event appears after 10 seconds
   setTimeout(showEvent,10000);
 }
 
 function showEvent(){
-  let box = document.getElementById("eventBox");
-  box.classList.remove("hidden");
+  const box = document.getElementById('eventBox');
+  box.classList.remove('hidden');
 
   let clicked = false;
-
-  document.getElementById("tapBtn").onclick = function(){
+  document.getElementById('tapBtn').onclick = function(){
     clicked = true;
-    box.classList.add("hidden");
-    startRandomEvent(); // schedule next event
+    box.classList.add('hidden');
+    startRandomEvent();
   }
 
   setTimeout(function(){
@@ -49,57 +93,6 @@ function showEvent(){
       clearInterval(timer);
       running=false;
     }
-    box.classList.add("hidden");
+    box.classList.add('hidden');
   },5000);
 }
-
-// -------------------- MEDIA PIPE CAMERA & POSE --------------------
-const videoElement = document.getElementById('camera');
-const canvasElement = document.getElementById('output');
-const canvasCtx = canvasElement.getContext('2d');
-
-const pose = new Pose({
-  locateFile: (file) => {
-    return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
-  }
-});
-
-pose.setOptions({
-  modelComplexity: 1,
-  smoothLandmarks: true,
-  enableSegmentation: false,
-  minDetectionConfidence: 0.5,
-  minTrackingConfidence: 0.5
-});
-
-pose.onResults(onResults);
-
-function onResults(results) {
-  // Clear canvas
-  canvasCtx.save();
-  canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-
-  // Draw video frame
-  canvasCtx.drawImage(
-    results.image, 0, 0, canvasElement.width, canvasElement.height);
-
-  // Draw pose landmarks
-  if(results.poseLandmarks){
-    drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS,
-                   {color:'#00FF00', lineWidth:4});
-    drawLandmarks(canvasCtx, results.poseLandmarks,
-                  {color:'#FF0000', lineWidth:2});
-  }
-
-  canvasCtx.restore();
-}
-
-// Initialize camera
-const camera = new Camera(videoElement, {
-  onFrame: async () => {
-    await pose.send({image: videoElement});
-  },
-  width: 640,
-  height: 480
-});
-camera.start();
