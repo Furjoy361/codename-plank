@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Plank Rival</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+<h1>Plank Rival 👑</h1>
+
+<div id="timer">0:00</div>
+
+<!-- Camera -->
+<video id="camera" autoplay playsinline></video>
+<canvas id="output"></canvas>
+
+<button id="startBtn">START PLANK</button>
+<button id="stopBtn">STOP</button>
+
+<div id="eventBox" class="hidden">
+⚡ TAP NOW
+<br>
+<button id="tapBtn">TAP</button>
+</div>
+
+<!-- MediaPipe Pose AI -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
+
+<!-- Your app code -->
+<script src="script.js"></script>
+
+</body>
+</html>
