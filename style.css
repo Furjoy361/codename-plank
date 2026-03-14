@@ -22,7 +22,6 @@ h1{
   font-weight:bold;
 }
 
-/* CAMERA */
 video, canvas{
   width:90%;
   max-width:400px;
@@ -30,7 +29,6 @@ video, canvas{
   margin:10px 0;
 }
 
-/* BUTTONS */
 button{
   padding:18px 25px;
   font-size:20px;
@@ -48,7 +46,6 @@ button:active{
   transform:scale(0.96);
 }
 
-/* EVENT BOX */
 #eventBox{
   margin-top:20px;
   padding:20px;
@@ -61,7 +58,6 @@ button:active{
   border:2px solid #ff3c3c;
 }
 
-/* HIDDEN CLASS */
 .hidden{
   display:none;
 }
