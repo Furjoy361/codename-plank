@@ -1,6 +1,8 @@
 let seconds = 0;
 let timer;
 let running = false;
+let squatStage = null; // "down" or "up"
+let reps = 0;
 
 const video = document.getElementById('camera');
 const canvas = document.getElementById('output');
@@ -25,39 +27,11 @@ function calculateAngle(A, B, C){
 function updateTimer(){
   seconds++;
   let min = Math.floor(seconds/60);
-  let sec = seconds%60;
+  let sec = seconds % 60;
   document.getElementById('timer').innerText = min + ":" + (sec<10?"0":"")+sec;
 }
 
-// -------------------- RANDOM EVENT --------------------
-function startRandomEvent(){
-  setTimeout(showEvent,10000);
-}
-
-function showEvent(){
-  const box = document.getElementById('eventBox');
-  box.classList.remove('hidden');
-
-  let clicked = false;
-  document.getElementById('tapBtn').onclick = function(){
-    clicked = true;
-    box.classList.add('hidden');
-    startRandomEvent();
-  }
-
-  setTimeout(function(){
-    if(!clicked){
-      alert("You failed the event!");
-      clearInterval(timer);
-      running=false;
-    }
-    box.classList.add('hidden');
-  },5000);
-}
-
-// -------------------- MEDIA PIPE & PLANK WARNING --------------------
-let badFormCounter = 0; // counts consecutive frames with bad posture
-
+// -------------------- MEDIA PIPE & SQUAT DETECTION --------------------
 function onResults(results){
   ctx.save();
   ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -67,33 +41,39 @@ function onResults(results){
     drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, {color:'#00FF00', lineWidth:4});
     drawLandmarks(ctx, results.poseLandmarks, {color:'#FF0000', lineWidth:2});
 
-    // -------------------- CHECK PLANK POSTURE --------------------
-    const leftShoulder = results.poseLandmarks[11];
-    const rightShoulder = results.poseLandmarks[12];
+    // -------------------- SQUAT REPS --------------------
     const leftHip = results.poseLandmarks[23];
     const rightHip = results.poseLandmarks[24];
     const leftKnee = results.poseLandmarks[25];
     const rightKnee = results.poseLandmarks[26];
+    const leftAnkle = results.poseLandmarks[27];
+    const rightAnkle = results.poseLandmarks[28];
 
-    const shoulder = {x: (leftShoulder.x+rightShoulder.x)/2, y: (leftShoulder.y+rightShoulder.y)/2};
-    const hip = {x: (leftHip.x+rightHip.x)/2, y: (leftHip.y+rightHip.y)/2};
-    const knee = {x: (leftKnee.x+rightKnee.x)/2, y: (leftKnee.y+rightKnee.y)/2};
+    // Average positions
+    const hip = {x:(leftHip.x+rightHip.x)/2, y:(leftHip.y+rightHip.y)/2};
+    const knee = {x:(leftKnee.x+rightKnee.x)/2, y:(leftKnee.y+rightKnee.y)/2};
+    const ankle = {x:(leftAnkle.x+rightAnkle.x)/2, y:(leftAnkle.y+rightAnkle.y)/2};
 
-    const angle = calculateAngle(shoulder, hip, knee);
+    const kneeAngle = calculateAngle(hip, knee, ankle);
 
-    if(angle < 160 || angle > 200){
-      badFormCounter++;
-    } else {
-      badFormCounter = 0; // reset counter if form is correct
+    // Squat logic
+    if(kneeAngle < 100 && squatStage !== "down"){
+      squatStage = "down"; // started going down
+    }
+    if(kneeAngle > 150 && squatStage === "down"){
+      squatStage = "up"; // completed squat
+      reps++;
+      document.getElementById('timer').innerText = `Reps: ${reps}`; // show reps instead of timer
     }
 
-    // -------------------- SHOW WARNING IF BAD FORM --------------------
-    if(badFormCounter > 10){ // bad posture for ~10 frames (~0.3 sec)
+    // -------------------- POSTURE WARNING --------------------
+    if(kneeAngle < 60 || kneeAngle > 180){
+      // extreme angle, bad form
       ctx.fillStyle = 'rgba(255,0,0,0.4)';
       ctx.fillRect(0,0,canvas.width,canvas.height);
       ctx.font = '30px Arial';
       ctx.fillStyle = 'white';
-      ctx.fillText('Fix your plank form!', 50, 50);
+      ctx.fillText('Fix your squat form!', 50, 50);
     }
   }
 
@@ -105,9 +85,9 @@ document.getElementById('startBtn').onclick = async function(){
   if(running) return;
   running = true;
   seconds = 0;
-  badFormCounter = 0;
+  reps = 0;
+  squatStage = null;
   timer = setInterval(updateTimer,1000);
-  startRandomEvent();
 
   pose = new Pose({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`});
   pose.setOptions({
@@ -135,6 +115,6 @@ document.getElementById('startBtn').onclick = async function(){
 
 document.getElementById('stopBtn').onclick = function(){
   clearInterval(timer);
-  running=false;
-  alert("Your time: "+seconds+" seconds");
+  running = false;
+  alert(`You completed ${reps} squats!`);
 };
