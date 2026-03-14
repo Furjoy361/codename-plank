@@ -10,16 +10,15 @@ canvas.height = 480;
 
 let pose, camera;
 
-// -------------------- HELPER FUNCTION: CALCULATE ANGLE --------------------
+// -------------------- HELPER: CALCULATE ANGLE --------------------
 function calculateAngle(A, B, C){
-  // A, B, C = {x, y}
   const AB = {x: B.x - A.x, y: B.y - A.y};
   const CB = {x: B.x - C.x, y: B.y - C.y};
   const dot = AB.x*CB.x + AB.y*CB.y;
   const magAB = Math.sqrt(AB.x*AB.x + AB.y*AB.y);
   const magCB = Math.sqrt(CB.x*CB.x + CB.y*CB.y);
   const angleRad = Math.acos(dot/(magAB*magCB));
-  return angleRad * (180/Math.PI); // convert to degrees
+  return angleRad * (180/Math.PI);
 }
 
 // -------------------- TIMER --------------------
@@ -56,7 +55,9 @@ function showEvent(){
   },5000);
 }
 
-// -------------------- MEDIA PIPE --------------------
+// -------------------- MEDIA PIPE & PLANK WARNING --------------------
+let badFormCounter = 0; // counts consecutive frames with bad posture
+
 function onResults(results){
   ctx.save();
   ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -66,7 +67,7 @@ function onResults(results){
     drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, {color:'#00FF00', lineWidth:4});
     drawLandmarks(ctx, results.poseLandmarks, {color:'#FF0000', lineWidth:2});
 
-    // -------------------- PLANK POSTURE CHECK --------------------
+    // -------------------- CHECK PLANK POSTURE --------------------
     const leftShoulder = results.poseLandmarks[11];
     const rightShoulder = results.poseLandmarks[12];
     const leftHip = results.poseLandmarks[23];
@@ -80,15 +81,22 @@ function onResults(results){
 
     const angle = calculateAngle(shoulder, hip, knee);
 
-    // Check angle thresholds for bad plank
     if(angle < 160 || angle > 200){
-      if(running){
-        clearInterval(timer);
-        running = false;
-        alert("Plank form incorrect! Keep your back straight.");
-      }
+      badFormCounter++;
+    } else {
+      badFormCounter = 0; // reset counter if form is correct
+    }
+
+    // -------------------- SHOW WARNING IF BAD FORM --------------------
+    if(badFormCounter > 10){ // bad posture for ~10 frames (~0.3 sec)
+      ctx.fillStyle = 'rgba(255,0,0,0.4)';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.font = '30px Arial';
+      ctx.fillStyle = 'white';
+      ctx.fillText('Fix your plank form!', 50, 50);
     }
   }
+
   ctx.restore();
 }
 
@@ -97,6 +105,7 @@ document.getElementById('startBtn').onclick = async function(){
   if(running) return;
   running = true;
   seconds = 0;
+  badFormCounter = 0;
   timer = setInterval(updateTimer,1000);
   startRandomEvent();
 
